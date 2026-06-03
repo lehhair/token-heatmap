@@ -157,7 +157,8 @@ proto._fetch = function(url){
 proto._render = function(){
   var self = this;
   var root = self.shadowRoot;
-  root.innerHTML +=
+  var wrap = document.createElement('div');
+  wrap.innerHTML =
     '<div class="stats" id="stats"></div>'+
     '<div class="heatmap_container">'+
       '<div class="heatmap_content">'+
@@ -180,6 +181,7 @@ proto._render = function(){
       '</div>'+
       '<div class="heatmap_tooltip_container"></div>'+
     '</div>';
+  while(wrap.firstChild) root.appendChild(wrap.firstChild);
   self._generateMonthLabels();
   self._generateHeatmapGrid();
 };
