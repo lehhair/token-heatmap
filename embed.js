@@ -24,6 +24,13 @@ function getStartDate(){
   while(sd.getDay()!==1)sd.setDate(sd.getDate()+1);
   return sd;
 }
+function isDark(){
+  var theme=document.documentElement.getAttribute('data-theme');
+  if(theme==='dark')return true;
+  if(theme==='light')return false;
+  return window.matchMedia('(prefers-color-scheme:dark)').matches;
+}
+
 class OpenCodeTokenHeatmap extends HTMLElement {
   constructor() {
     super();
@@ -38,18 +45,18 @@ class OpenCodeTokenHeatmap extends HTMLElement {
   }
   connectedCallback() {
     var css = `
-:host{--ht-main:#334155;--ht-stat:#24292f;--ht-tooltip:#24292f;--ht-tooltip-bg:#fff;--ht-tooltip-border:#ccc;--ht-detail-bg:#f6f8fa;--ht-detail-fg:#24292f;--ht-detail-border:#d0d7de;--ht-detail-shadow:rgba(0,0,0,.12);--ht-lv-0:#ebedf0;--ht-lv-1:#9be9a8;--ht-lv-2:#40c463;--ht-lv-3:#30a14e;--ht-lv-4:#216e39;display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px;text-align:left;color:var(--ht-main)}
+:host{--ht-main:#334155;--ht-stat:#24292f;--ht-tooltip:#24292f;--ht-tooltip-bg:#fff;--ht-tooltip-border:#ccc;--ht-detail-bg:#f6f8fa;--ht-detail-fg:#24292f;--ht-detail-border:#d0d7de;--ht-detail-shadow:rgba(0,0,0,.12);--ht-lv-0:#ebedf0;--ht-lv-1:#9be9a8;--ht-lv-2:#40c463;--ht-lv-3:#30a14e;--ht-lv-4:#216e39;display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px;text-align:left;background:transparent!important;color:var(--ht-main)}
 :host([data-theme="dark"]){--ht-main:#94a3b8;--ht-stat:#e6edf3;--ht-tooltip:#fff;--ht-tooltip-bg:#333;--ht-tooltip-border:#555;--ht-detail-bg:#161b22;--ht-detail-fg:#c9d1d9;--ht-detail-border:#30363d;--ht-detail-shadow:rgba(0,0,0,.4);--ht-lv-0:#161b22;--ht-lv-1:#0e4429;--ht-lv-2:#006d32;--ht-lv-3:#26a641;--ht-lv-4:#39d353}
-.stats{display:flex;flex-wrap:nowrap;gap:0;margin-bottom:12px}
+.stats{display:flex;flex-wrap:nowrap;gap:0;margin-bottom:12px;background:transparent}
 .stat{flex:1 0 0;min-width:88px;text-align:center;padding:3px 2px;box-sizing:border-box}
 .stat-value{display:block;font-size:13px;font-weight:600;letter-spacing:-0.3px;color:var(--ht-stat)}
 .stat-label{font-size:8px;font-weight:400;color:#8b949e;letter-spacing:0.3px}
-.heatmap_container{display:flex;flex-direction:column;font-size:10px;line-height:10px;align-items:center;max-width:fit-content;color:var(--ht-main)}
-.heatmap_content{display:flex;flex-direction:row;align-items:flex-end;overflow-x:auto;overflow-y:hidden}
+.heatmap_container{display:flex;flex-direction:column;font-size:10px;line-height:10px;align-items:flex-start;max-width:fit-content;background:transparent;color:var(--ht-main)}
+.heatmap_content{display:flex;flex-direction:row;align-items:flex-end;overflow-x:auto;overflow-y:hidden;background:transparent}
 .heatmap_week{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-end;text-align:right}
 .heatmap_content>.heatmap_week span{margin-right:0.25rem;margin-top:0;min-width:22px;white-space:nowrap;height:12px}
 .heatmap_main{display:flex;flex-direction:column}
-@media(max-width:1200px){.heatmap_content{width:100%}}
+@media(max-width:1200px){.heatmap_content{max-width:100%}}
 .heatmap_month{display:flex;flex-direction:row;justify-content:space-around;align-items:flex-end;text-align:right;margin-bottom:2px}
 .heatmap{display:flex;flex-direction:row;height:84px}
 .heatmap_footer{display:flex;margin-top:0.5rem;align-self:flex-end;min-width:113px;white-space:nowrap;margin-left:auto}
@@ -61,7 +68,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
 .heatmap_level_3,.heatmap_day_level_3{background:var(--ht-lv-3)}
 .heatmap_level_4,.heatmap_day_level_4{background:var(--ht-lv-4)}
 .heatmap_day{width:10px;height:10px;margin:1px;border-radius:2px;display:inline-block;position:relative;cursor:default}
-.heatmap_tooltip{position:fixed;font-size:12px;line-height:16px;padding:8px;border-radius:3px;white-space:pre-wrap;z-index:10000;text-align:right;pointer-events:none;color:var(--ht-tooltip);background:var(--ht-tooltip-bg);border:1px solid var(--ht-tooltip-border)}
+.heatmap_tooltip{position:fixed;font-size:12px;line-height:16px;padding:8px;border-radius:3px;white-space:pre-wrap;z-index:10000;text-align:right;pointer-events:none;background:var(--ht-tooltip-bg);color:var(--ht-tooltip);border:1px solid var(--ht-tooltip-border)}
 @keyframes grow{0%{transform:scale(0)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 .heatmap_day_grow{animation:grow .5s cubic-bezier(.34,1.56,.64,1) both}
 .error{text-align:center;padding:60px 0;color:#cf222e;font-size:14px}
@@ -109,8 +116,8 @@ class OpenCodeTokenHeatmap extends HTMLElement {
   }
   _buildHTML() {
     var h = '';
-    h += '<div class="heatmap_container">';
     h += '<div class="stats" id="stats"></div>';
+    h += '<div class="heatmap_container">';
     h += '<div class="heatmap_content">';
     h += '<div class="heatmap_week"><span>Mon</span><span>&nbsp;</span><span>Wed</span><span>&nbsp;</span><span>Fri</span><span>&nbsp;</span><span>Sun</span></div>';
     h += '<div class="heatmap_main">';
@@ -127,15 +134,14 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     h += '<span class="heatmap_level_item heatmap_level_4"></span>';
     h += '</div>';
     h += '<div class="heatmap_more">More</div>';
-    h += '</div>';
+    h += '</div></div>';
     h += '<div class="heatmap_tooltip_container"></div>';
-    h += '</div>';
     return h;
   }
   _syncStatsWidth() {
-    var stats = this.shadowRoot.querySelector('#stats');
-    var content = this.shadowRoot.querySelector('.heatmap_content');
-    if(stats&&content)stats.style.width = content.scrollWidth + 'px';
+    var stats=this.shadowRoot.querySelector('#stats');
+    var content=this.shadowRoot.querySelector('.heatmap_content');
+    if(stats&&content)stats.style.width=content.scrollWidth+'px';
   }
   _startThemeSync() {
     this._updateTheme();
@@ -150,7 +156,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     }
   }
   _updateTheme() {
-    var theme = document.documentElement.getAttribute('data-theme');
+    var theme=document.documentElement.getAttribute('data-theme');
     if(theme!=='light'&&theme!=='dark')theme=this._colorSchemeMediaQuery&&this._colorSchemeMediaQuery.matches?'dark':'light';
     this.setAttribute('data-theme',theme);
   }
@@ -214,6 +220,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     this.shadowRoot.querySelector('#stats').innerHTML = cards.map(function(c){
       return '<div class="stat"><span class="stat-value">'+c[0]+'</span><span class="stat-label">'+c[1]+'</span></div>';
     }).join('');
+    this._syncStatsWidth();
   }
   _updateHeatmap(daily, stats) {
     var self = this;
