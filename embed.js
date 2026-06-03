@@ -148,14 +148,22 @@ proto.connectedCallback = function(){
 
 proto._fetch = function(url){
   var self = this;
-  fetch(url).then(function(r){
-    if(!r.ok)throw new Error('HTTP '+r.status);
-    return r.json();
-  }).then(function(data){
-    self._onData(data);
-  }).catch(function(){
-    self._showError('Cannot load stats data');
-  });
+  var jsUrl = url.replace(/\.json$/,'.js');
+  var check = function(){
+    if(window.__OPENCODE_TOKEN_DATA__){
+      self._onData(window.__OPENCODE_TOKEN_DATA__);
+      return true;
+    }
+    return false;
+  };
+  if(check()) return;
+  var s = document.createElement('script');
+  s.src = jsUrl;
+  s.onload = function(){
+    if(!check()) self._showError('Data not found in loaded script');
+  };
+  s.onerror = function(){ self._showError('Cannot load stats data'); };
+  document.head.appendChild(s);
 };
 
 proto._render = function(){
@@ -226,7 +234,10 @@ proto._bindDay = function(day){
   day.addEventListener('mouseleave',function(){self._hideTooltip();});
   day.addEventListener('click',function(e){
     var ds=day.getAttribute('data-date');
-    if(ds&&self._dailyMap[ds])self._showDetail(ds,day);
+    if(ds&&self._dailyMap[ds]){
+      e.stopPropagation();
+      self._showDetail(ds,day);
+    }
   });
 };
 
@@ -395,9 +406,15 @@ proto._showDetail = function(dateStr,dayEl){
   panel.className='detail_panel';
   panel.innerHTML='<span class="detail_close">&times;</span><h3>'+dateStr+'</h3>'+summaryHtml+tokensHtml+modelsHtml;
   document.body.appendChild(panel);
-  _rootDoc.addEventListener('click',function _close(e){
-    if(!e.target.closest('.detail_panel')){panel.remove();_rootDoc.removeEventListener('click',_close);}
-  });
+  if(!self._closeHandler){
+    self._closeHandler = function(e){
+      var p = document.querySelector('.detail_panel');
+      if(!p) return;
+      if(!e.composedPath().some(function(el){return el.classList && el.classList.contains('detail_panel');}))
+        p.remove();
+    };
+    document.addEventListener('click', self._closeHandler);
+  }
   panel.querySelector('.detail_close').onclick=function(){panel.remove();};
   if(self._donutData){
     var legend=panel.querySelector('.model-legend');
