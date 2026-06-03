@@ -113,14 +113,17 @@ var HeatmapCard = (function(){
 
 var _rootDoc = document;
 
-function HeatmapCard(){
-  this._dailyData = {};
-  this._dailyMap = {};
-  this._donutData = null;
-  this._sel = -1;
+class HeatmapCard extends HTMLElement {
+  constructor() {
+    super();
+    this._dailyData = {};
+    this._dailyMap = {};
+    this._donutData = null;
+    this._sel = -1;
+  }
 }
 
-var proto = HeatmapCard.prototype = Object.create(HTMLElement.prototype);
+var proto = HeatmapCard.prototype;
 
 proto.connectedCallback = function(){
   var self = this;
