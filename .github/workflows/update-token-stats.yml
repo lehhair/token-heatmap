@@ -198,7 +198,7 @@ jobs:
           if site_dir.exists():
               shutil.rmtree(site_dir)
           site_dir.mkdir()
-          for name in ("index.html", "LICENSE", "README.md"):
+          for name in ("index.html", "embed.js", "LICENSE", "README.md"):
               src = Path(name)
               if src.exists():
                   shutil.copy2(src, site_dir / name)
