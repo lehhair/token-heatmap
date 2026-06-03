@@ -132,17 +132,17 @@ proto.connectedCallback = function(){
   self.shadowRoot.appendChild(style);
   self._render();
 
-  var src = self.getAttribute('src');
+  var src = self.getAttribute('src') || self.getAttribute('data-src');
   if(src){
     self._fetch(src);
   } else {
-    var scriptSrc = document.currentScript && document.currentScript.src;
-    if(scriptSrc){
-      var base = scriptSrc.substring(0, scriptSrc.lastIndexOf('/'));
-      self._fetch(base + '/stats/opencode-tokens.json');
-    } else {
-      self._fetch('stats/opencode-tokens.json');
+    var base = '';
+    var scripts = document.querySelectorAll('script[src*="embed.js"]');
+    if(scripts.length){
+      var s = scripts[scripts.length-1].src;
+      base = s.substring(0, s.lastIndexOf('/'));
     }
+    self._fetch(base + '/stats/opencode-tokens.json');
   }
 };
 
