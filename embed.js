@@ -101,6 +101,8 @@ class OpenCodeTokenHeatmap extends HTMLElement {
 .detail_close:hover{opacity:1}
 `;
     this.shadowRoot.innerHTML = '<style>'+css+'</style>'+this._buildHTML();
+    this._generateMonthLabels();
+    this._generateGrid();
     this._fetch();
   }
   _buildHTML() {
@@ -125,8 +127,6 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     h += '<div class="heatmap_more">More</div>';
     h += '</div></div>';
     h += '<div class="heatmap_tooltip_container"></div>';
-    this._generateMonthLabels();
-    this._generateGrid();
     return h;
   }
   _generateMonthLabels() {
