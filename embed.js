@@ -461,12 +461,12 @@ proto._showError = function(msg){
 return HeatmapCard;
 })();
 
-if(typeof customElements!=='undefined'&&!customElements.get('heatmap-card')){
-  customElements.define('heatmap-card',HeatmapCard);
+if(typeof customElements!=='undefined'&&!customElements.get('opencode-token-heatmap')){
+  customElements.define('opencode-token-heatmap',HeatmapCard);
 }
 
 if(typeof window!=='undefined'){
-  window.HeatmapCard = HeatmapCard;
+  window.OpenCodeTokenHeatmap = HeatmapCard;
 }
 
 })();

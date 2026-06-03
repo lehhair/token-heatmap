@@ -34,6 +34,20 @@ python server.py
 
 GitHub Pages 的 Source 请选择 `GitHub Actions`，不要选 `Deploy from a branch`。
 
+### 4. 嵌入到其他网站
+
+```html
+<script src="https://your-name.github.io/opencode-heatmap/embed.js" defer></script>
+<opencode-token-heatmap></opencode-token-heatmap>
+```
+
+组件背景透明，样式封装在 Shadow DOM 里，不会污染宿主页面。需要指定数据地址时可以加 `data-src`：
+
+```html
+<script src="https://your-name.github.io/opencode-heatmap/embed.js" defer></script>
+<opencode-token-heatmap data-src="https://your-name.github.io/opencode-heatmap/stats/opencode-tokens.json"></opencode-token-heatmap>
+```
+
 ## 自动同步（OpenCode 插件）
 
 安装插件后，每次启动 OpenCode 后延迟触发一次后台同步。
