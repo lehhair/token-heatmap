@@ -24,25 +24,29 @@ function getStartDate(){
   while(sd.getDay()!==1)sd.setDate(sd.getDate()+1);
   return sd;
 }
-function isDark(){return window.matchMedia('(prefers-color-scheme:dark)').matches}
-
 class OpenCodeTokenHeatmap extends HTMLElement {
   constructor() {
     super();
     this._dailyMap = {};
     this._donutData = null;
     this._sel = -1;
+    this._themeObserver = null;
+    this._themeListenerAttached = false;
+    this._colorSchemeMediaQuery = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+    this._handleThemeChange = this._updateTheme.bind(this);
     this.attachShadow({mode:'open'});
   }
   connectedCallback() {
     var css = `
-:host{display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px;text-align:left}
-.stats{display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px;max-width:fit-content}
-.stat{flex:0 0 88px;text-align:center;padding:3px 2px;box-sizing:border-box}
-.stat-value{display:block;font-size:13px;font-weight:600;letter-spacing:-0.3px}
+:host{--ht-main:#334155;--ht-stat:#24292f;--ht-tooltip:#24292f;--ht-tooltip-bg:#fff;--ht-tooltip-border:#ccc;--ht-detail-bg:#f6f8fa;--ht-detail-fg:#24292f;--ht-detail-border:#d0d7de;--ht-detail-shadow:rgba(0,0,0,.12);--ht-lv-0:#ebedf0;--ht-lv-1:#9be9a8;--ht-lv-2:#40c463;--ht-lv-3:#30a14e;--ht-lv-4:#216e39;display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px;text-align:left;color:var(--ht-main)}
+:host([data-theme="dark"]){--ht-main:#94a3b8;--ht-stat:#e6edf3;--ht-tooltip:#fff;--ht-tooltip-bg:#333;--ht-tooltip-border:#555;--ht-detail-bg:#161b22;--ht-detail-fg:#c9d1d9;--ht-detail-border:#30363d;--ht-detail-shadow:rgba(0,0,0,.4);--ht-lv-0:#161b22;--ht-lv-1:#0e4429;--ht-lv-2:#006d32;--ht-lv-3:#26a641;--ht-lv-4:#39d353}
+.heatmap_scroller{max-width:100%;overflow-x:auto;overflow-y:visible}
+.heatmap_inner{display:inline-flex;flex-direction:column;align-items:flex-start;min-width:max-content}
+.stats{display:flex;flex-wrap:nowrap;gap:0;margin-bottom:12px;min-width:max-content}
+.stat{flex:1 0 88px;text-align:center;padding:3px 2px;box-sizing:border-box}
+.stat-value{display:block;font-size:13px;font-weight:600;letter-spacing:-0.3px;color:var(--ht-stat)}
 .stat-label{font-size:8px;font-weight:400;color:#8b949e;letter-spacing:0.3px}
-@media(prefers-color-scheme:dark){.stat-value{color:#e6edf3}}
-.heatmap_container{display:flex;flex-direction:column;font-size:10px;line-height:10px;align-items:flex-start;max-width:fit-content}
+.heatmap_container{display:flex;flex-direction:column;font-size:10px;line-height:10px;align-items:flex-start;max-width:fit-content;color:var(--ht-main)}
 .heatmap_content{display:flex;flex-direction:row;align-items:flex-end;overflow-x:auto;overflow-y:hidden}
 .heatmap_week{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-end;text-align:right}
 .heatmap_content>.heatmap_week span{margin-right:0.25rem;margin-top:0;min-width:22px;white-space:nowrap;height:12px}
@@ -53,27 +57,17 @@ class OpenCodeTokenHeatmap extends HTMLElement {
 .heatmap_footer{display:flex;margin-top:0.5rem;align-self:flex-end;min-width:113px;white-space:nowrap;margin-left:auto}
 .heatmap_level{display:flex;gap:2px;margin:0 0.25rem;flex-direction:row;width:max-content;height:10px;align-self:flex-end}
 .heatmap_level_item{display:block;border-radius:0.125rem;width:10px;height:10px}
-.heatmap_level_0,.heatmap_day_level_0{background:var(--ht-lv-0,#ebedf0)}
-.heatmap_level_1,.heatmap_day_level_1{background:var(--ht-lv-1,#9be9a8)}
-.heatmap_level_2,.heatmap_day_level_2{background:var(--ht-lv-2,#40c463)}
-.heatmap_level_3,.heatmap_day_level_3{background:var(--ht-lv-3,#30a14e)}
-.heatmap_level_4,.heatmap_day_level_4{background:var(--ht-lv-4,#216e39)}
-@media(prefers-color-scheme:dark){
-.heatmap_level_0,.heatmap_day_level_0{background:var(--ht-lv-0,#161b22)}
-.heatmap_level_1,.heatmap_day_level_1{background:var(--ht-lv-1,#0e4429)}
-.heatmap_level_2,.heatmap_day_level_2{background:var(--ht-lv-2,#006d32)}
-.heatmap_level_3,.heatmap_day_level_3{background:var(--ht-lv-3,#26a641)}
-.heatmap_level_4,.heatmap_day_level_4{background:var(--ht-lv-4,#39d353)}
-}
+.heatmap_level_0,.heatmap_day_level_0{background:var(--ht-lv-0)}
+.heatmap_level_1,.heatmap_day_level_1{background:var(--ht-lv-1)}
+.heatmap_level_2,.heatmap_day_level_2{background:var(--ht-lv-2)}
+.heatmap_level_3,.heatmap_day_level_3{background:var(--ht-lv-3)}
+.heatmap_level_4,.heatmap_day_level_4{background:var(--ht-lv-4)}
 .heatmap_day{width:10px;height:10px;margin:1px;border-radius:2px;display:inline-block;position:relative;cursor:default}
-.heatmap_tooltip{position:fixed;font-size:12px;line-height:16px;padding:8px;border-radius:3px;white-space:pre-wrap;z-index:10000;text-align:right;pointer-events:none}
-.heatmap_tooltip_light{background:#fff;color:#333;border:1px solid #ccc}
-.heatmap_tooltip_dark{background:#333;color:#fff;border:1px solid #555}
+.heatmap_tooltip{position:fixed;font-size:12px;line-height:16px;padding:8px;border-radius:3px;white-space:pre-wrap;z-index:10000;text-align:right;pointer-events:none;color:var(--ht-tooltip);background:var(--ht-tooltip-bg);border:1px solid var(--ht-tooltip-border)}
 @keyframes grow{0%{transform:scale(0)}60%{transform:scale(1.12)}100%{transform:scale(1)}}
 .heatmap_day_grow{animation:grow .5s cubic-bezier(.34,1.56,.64,1) both}
 .error{text-align:center;padding:60px 0;color:#cf222e;font-size:14px}
-.detail_panel{position:fixed;padding:12px 14px;background:#f6f8fa;border-radius:6px;border:1px solid #d0d7de;box-shadow:0 4px 12px rgba(0,0,0,.12);font-size:12px;color:#24292f;text-align:left;z-index:1000;width:320px;max-width:calc(100vw - 8px);box-sizing:border-box}
-@media(prefers-color-scheme:dark){.detail_panel{background:#161b22;color:#c9d1d9;border-color:#30363d;box-shadow:0 4px 12px rgba(0,0,0,.4)}}
+.detail_panel{position:fixed;padding:12px 14px;background:var(--ht-detail-bg);border-radius:6px;border:1px solid var(--ht-detail-border);box-shadow:0 4px 12px var(--ht-detail-shadow);font-size:12px;color:var(--ht-detail-fg);text-align:left;z-index:1000;width:320px;max-width:calc(100vw - 8px);box-sizing:border-box}
 .detail_panel h3{font-size:12px;font-weight:600;margin-bottom:8px}
 .detail_summary{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .detail_summary span{white-space:nowrap}
@@ -103,10 +97,21 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     this.shadowRoot.innerHTML = '<style>'+css+'</style>'+this._buildHTML();
     this._generateMonthLabels();
     this._generateGrid();
+    this._syncStatsWidth();
+    this._startThemeSync();
     this._fetch();
+  }
+  disconnectedCallback() {
+    if(this._themeObserver){this._themeObserver.disconnect();this._themeObserver=null;}
+    if(this._themeListenerAttached&&this._colorSchemeMediaQuery){
+      if(this._colorSchemeMediaQuery.removeEventListener)this._colorSchemeMediaQuery.removeEventListener('change',this._handleThemeChange);
+      else if(this._colorSchemeMediaQuery.removeListener)this._colorSchemeMediaQuery.removeListener(this._handleThemeChange);
+      this._themeListenerAttached=false;
+    }
   }
   _buildHTML() {
     var h = '';
+    h += '<div class="heatmap_scroller"><div class="heatmap_inner">';
     h += '<div class="stats" id="stats"></div>';
     h += '<div class="heatmap_container">';
     h += '<div class="heatmap_content">';
@@ -126,8 +131,31 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     h += '</div>';
     h += '<div class="heatmap_more">More</div>';
     h += '</div></div>';
+    h += '</div></div>';
     h += '<div class="heatmap_tooltip_container"></div>';
     return h;
+  }
+  _syncStatsWidth() {
+    var stats = this.shadowRoot.querySelector('#stats');
+    var content = this.shadowRoot.querySelector('.heatmap_content');
+    if(stats&&content)stats.style.width = content.scrollWidth + 'px';
+  }
+  _startThemeSync() {
+    this._updateTheme();
+    if(this._colorSchemeMediaQuery&&!this._themeListenerAttached){
+      if(this._colorSchemeMediaQuery.addEventListener)this._colorSchemeMediaQuery.addEventListener('change',this._handleThemeChange);
+      else if(this._colorSchemeMediaQuery.addListener)this._colorSchemeMediaQuery.addListener(this._handleThemeChange);
+      this._themeListenerAttached=true;
+    }
+    if(!this._themeObserver&&window.MutationObserver){
+      this._themeObserver=new MutationObserver(this._handleThemeChange);
+      this._themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+    }
+  }
+  _updateTheme() {
+    var theme = document.documentElement.getAttribute('data-theme');
+    if(theme!=='light'&&theme!=='dark')theme=this._colorSchemeMediaQuery&&this._colorSchemeMediaQuery.matches?'dark':'light';
+    this.setAttribute('data-theme',theme);
   }
   _generateMonthLabels() {
     var el = this.shadowRoot.querySelector('.month');
@@ -212,7 +240,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
   _showTooltip(day, event) {
     var count=day.getAttribute('data-count'),sessions=day.getAttribute('data-sessions'),date=day.getAttribute('data-date');
     var tip=document.createElement('div');
-    tip.className='heatmap_tooltip '+(isDark()?'heatmap_tooltip_dark':'heatmap_tooltip_light');
+    tip.className='heatmap_tooltip';
     var h='';
     if(sessions&&parseInt(sessions,10)!==0)h+='<span class="heatmap_tooltip_post">'+sessions+' sessions</span>';
     if(count&&parseInt(count,10)!==0)h+='<span class="heatmap_tooltip_count"> '+parseInt(count).toLocaleString()+' tokens</span>';
