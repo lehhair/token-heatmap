@@ -1,0 +1,222 @@
+name: Update token stats
+
+on:
+  workflow_dispatch:
+    inputs:
+      payload:
+        description: "gzip+base64 encoded token stats JSON"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: token-stats-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Build Pages artifact
+        env:
+          PAYLOAD: ${{ inputs.payload }}
+          PAGES_STATS_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/stats/opencode-tokens.json
+        run: |
+          python - <<'PY'
+          import base64
+          import gzip
+          import json
+          import os
+          import re
+          import shutil
+          import urllib.error
+          import urllib.request
+          from pathlib import Path
+
+          MAX_PAYLOAD_CHARS = 60000
+          MAX_JSON_BYTES = 5 * 1024 * 1024
+          MAX_DAILY_ROWS = 366
+          MAX_MODELS_PER_DAY = 80
+          DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+          INT_FIELDS = {
+              "sessions",
+              "tokens",
+              "tokens_input",
+              "tokens_output",
+              "tokens_cache_read",
+              "tokens_cache_write",
+              "tokens_reasoning",
+              "longest_turn_ms",
+              "messages",
+          }
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          def safe_int(value, field):
+              require(isinstance(value, int) and not isinstance(value, bool), f"invalid integer field: {field}")
+              require(0 <= value <= 10**15, f"integer out of range: {field}")
+              return value
+
+          def safe_str(value, field, max_len=160):
+              require(isinstance(value, str), f"invalid string field: {field}")
+              require(len(value) <= max_len, f"string too long: {field}")
+              return value
+
+          payload = os.environ["PAYLOAD"]
+          require(len(payload) <= MAX_PAYLOAD_CHARS, "payload too large")
+          raw = gzip.decompress(base64.b64decode(payload))
+          require(len(raw) <= MAX_JSON_BYTES, "decoded payload too large")
+          data = json.loads(raw.decode("utf-8"))
+
+          if not isinstance(data, dict) or "daily" not in data or "mode" not in data:
+              raise SystemExit("invalid stats payload")
+
+          require(data.get("version") == 1, "unsupported stats version")
+          safe_str(data.get("updated_at", ""), "updated_at", 80)
+          mode = safe_str(data.get("mode"), "mode", 10)
+          require(mode in {"full", "patch"}, "invalid payload mode")
+          since_day = data.get("since_day")
+          if since_day is not None:
+              since_day = safe_str(since_day, "since_day", 10)
+              require(DATE_RE.match(since_day) is not None, "invalid since_day")
+
+          daily = data["daily"]
+          require(isinstance(daily, list), "daily must be a list")
+          if mode == "full":
+              require(len(daily) <= MAX_DAILY_ROWS, "too many daily rows")
+          else:
+              require(len(daily) <= 31, "too many patch rows")
+
+          clean_daily = []
+          for entry in daily:
+              require(isinstance(entry, dict), "daily entry must be an object")
+              clean = {}
+              date = safe_str(entry.get("date"), "date", 10)
+              require(DATE_RE.match(date) is not None, "invalid date")
+              clean["date"] = date
+              for field in INT_FIELDS:
+                  if field in entry:
+                      clean[field] = safe_int(entry[field], field)
+              models = entry.get("models", [])
+              require(isinstance(models, list), "models must be a list")
+              require(len(models) <= MAX_MODELS_PER_DAY, "too many models")
+              clean_models = []
+              for model in models:
+                  require(isinstance(model, dict), "model entry must be an object")
+                  clean_model = {
+                      "model": safe_str(model.get("model", "unknown"), "model"),
+                  }
+                  for field in INT_FIELDS:
+                      if field in model:
+                          clean_model[field] = safe_int(model[field], field)
+                  clean_models.append(clean_model)
+              clean["models"] = clean_models
+              clean_daily.append(clean)
+
+          def compute_stats(rows):
+              lifetime_tokens = 0
+              peak_daily_tokens = 0
+              longest_turn_sec = 0
+              total_sessions = 0
+              daily_tokens = {}
+              dates_with_data = []
+              for row in rows:
+                  total = row.get("tokens_input", 0) + row.get("tokens_output", 0)
+                  row["tokens"] = total
+                  lifetime_tokens += total
+                  peak_daily_tokens = max(peak_daily_tokens, total)
+                  longest_turn_sec = max(longest_turn_sec, row.get("longest_turn_ms", 0) // 1000)
+                  total_sessions += row.get("sessions", 0)
+                  daily_tokens[row["date"]] = total
+                  if total > 0:
+                      dates_with_data.append(row["date"])
+
+              from datetime import date, timedelta
+              today = date.today()
+              current_streak = 0
+              d = today
+              while daily_tokens.get(d.isoformat(), 0) > 0:
+                  current_streak += 1
+                  d -= timedelta(days=1)
+
+              longest_streak = 0
+              streak = 0
+              for day in sorted(dates_with_data):
+                  if daily_tokens.get(day, 0) > 0:
+                      streak += 1
+                      longest_streak = max(longest_streak, streak)
+                  else:
+                      streak = 0
+
+              return {
+                  "lifetime_tokens": lifetime_tokens,
+                  "peak_daily_tokens": peak_daily_tokens,
+                  "longest_turn_sec": longest_turn_sec,
+                  "current_streak_days": current_streak,
+                  "longest_streak_days": longest_streak,
+                  "total_sessions": total_sessions,
+              }
+
+          if mode == "patch":
+              url = os.environ["PAGES_STATS_URL"]
+              try:
+                  with urllib.request.urlopen(url, timeout=20) as response:
+                      existing = json.loads(response.read().decode("utf-8"))
+              except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as exc:
+                  raise SystemExit(f"published stats missing; run a full upload first: {exc}")
+              require(isinstance(existing, dict) and isinstance(existing.get("daily"), list), "invalid published stats")
+              existing_map = {entry["date"]: entry for entry in existing["daily"] if isinstance(entry, dict) and "date" in entry}
+              require(since_day is not None, "patch missing since_day")
+              for date_key in list(existing_map):
+                  if date_key >= since_day:
+                      del existing_map[date_key]
+              for entry in clean_daily:
+                  existing_map[entry["date"]] = entry
+              clean_daily = sorted(existing_map.values(), key=lambda row: row["date"])
+
+          clean_daily = sorted(clean_daily, key=lambda row: row["date"])
+          clean_stats = compute_stats(clean_daily)
+
+          data = {
+              "version": 1,
+              "updated_at": safe_str(data.get("updated_at", ""), "updated_at", 80),
+              "daily": clean_daily,
+              "stats": clean_stats,
+          }
+
+          site_dir = Path("_site")
+          if site_dir.exists():
+              shutil.rmtree(site_dir)
+          site_dir.mkdir()
+          for name in ("index.html", "LICENSE", "README.md"):
+              src = Path(name)
+              if src.exists():
+                  shutil.copy2(src, site_dir / name)
+
+          stats_dir = site_dir / "stats"
+          stats_dir.mkdir(exist_ok=True)
+          json_text = json.dumps(data, ensure_ascii=False, indent=2)
+          (stats_dir / "opencode-tokens.json").write_text(json_text + "\n", encoding="utf-8")
+          (stats_dir / "opencode-tokens.js").write_text(
+              "window.__OPENCODE_TOKEN_DATA__ = " + json_text + ";\n",
+              encoding="utf-8",
+          )
+          PY
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy Pages
+        uses: actions/deploy-pages@v4
