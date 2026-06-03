@@ -114,12 +114,10 @@ var HeatmapCard = (function(){
 var _rootDoc = document;
 
 function HeatmapCard(){
-  var self = this instanceof HTMLElement ? this : Reflect.construct(HTMLElement,[],HeatmapCard);
-  self._dailyData = {};
-  self._dailyMap = {};
-  self._donutData = null;
-  self._sel = -1;
-  return self;
+  this._dailyData = {};
+  this._dailyMap = {};
+  this._donutData = null;
+  this._sel = -1;
 }
 
 var proto = HeatmapCard.prototype = Object.create(HTMLElement.prototype);
