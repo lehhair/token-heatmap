@@ -4,7 +4,7 @@ var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","
 var TOKEN_COLORS = {Input:"#58a6ff",Output:"#3fb950","Cache Read":"#79c0ff","Cache Write":"#d2a8ff",Reasoning:"#ffa657"};
 
 var CSS = `
-  :host { display:block; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+  :host { display:block; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; width:100%; max-width:960px; }
   :host([hidden]) { display:none; }
   .stats { display:flex; flex-wrap:wrap; gap:0; margin-bottom:12px; }
   .stat { flex:1; text-align:center; padding:3px 2px; }
@@ -396,16 +396,13 @@ proto._showDetail = function(dateStr,dayEl){
   var panel=document.createElement('div');
   panel.className='detail_panel';
   panel.innerHTML='<span class="detail_close">&times;</span><h3>'+dateStr+'</h3>'+summaryHtml+tokensHtml+modelsHtml;
-  document.body.appendChild(panel);
-  if(!self._closeHandler){
-    self._closeHandler = function(e){
-      var p = document.querySelector('.detail_panel');
-      if(!p) return;
-      if(!e.composedPath().some(function(el){return el.classList && el.classList.contains('detail_panel');}))
-        p.remove();
-    };
-    document.addEventListener('click', self._closeHandler);
-  }
+  self.shadowRoot.appendChild(panel);
+  self._closeHandler = function(e){
+    var p = self.shadowRoot.querySelector('.detail_panel');
+    if(!p) return;
+    if(!p.contains(e.target)) p.remove();
+  };
+  document.addEventListener('click', self._closeHandler);
   panel.querySelector('.detail_close').onclick=function(){panel.remove();};
   if(self._donutData){
     var legend=panel.querySelector('.model-legend');
@@ -451,7 +448,7 @@ proto._showDetail = function(dateStr,dayEl){
 };
 
 proto._closeDetail = function(){
-  var existing=document.querySelector('.detail_panel');
+  var existing=this.shadowRoot&&this.shadowRoot.querySelector('.detail_panel');
   if(existing)existing.remove();
 };
 
