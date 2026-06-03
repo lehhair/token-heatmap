@@ -148,22 +148,10 @@ proto.connectedCallback = function(){
 
 proto._fetch = function(url){
   var self = this;
-  var jsUrl = url.replace(/\.json$/,'.js');
-  var check = function(){
-    if(window.__OPENCODE_TOKEN_DATA__){
-      self._onData(window.__OPENCODE_TOKEN_DATA__);
-      return true;
-    }
-    return false;
-  };
-  if(check()) return;
-  var s = document.createElement('script');
-  s.src = jsUrl;
-  s.onload = function(){
-    if(!check()) self._showError('Data not found in loaded script');
-  };
-  s.onerror = function(){ self._showError('Cannot load stats data'); };
-  document.head.appendChild(s);
+  fetch(url, {mode:'cors'})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); })
+    .then(function(data){ self._onData(data); })
+    .catch(function(e){ self._showError('Cannot load stats: '+e.message); });
 };
 
 proto._render = function(){
