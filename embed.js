@@ -210,7 +210,7 @@ proto._generateMonthLabels = function(){
 
 proto._generateHeatmapGrid = function(){
   var self = this;
-  var container = self.shadowRoot.getElementById('heatmap_grid');
+  var container = self.shadowRoot.querySelector('#heatmap_grid');
   var sd = getStartDate();
   var ed = new Date();
   var cw = document.createElement('div'); cw.className='heatmap_week';
@@ -257,7 +257,7 @@ proto._renderStats = function(stats){
     [stats.current_streak_days+"d","Current Streak"],
     [stats.longest_streak_days+"d","Longest Streak"]
   ];
-  root.getElementById('stats').innerHTML = cards.map(function(c,i){
+  root.querySelector('#stats').innerHTML = cards.map(function(c,i){
     return '<div class="stat"><span class="stat-value">'+c[0]+'</span><span class="stat-label">'+c[1]+'</span></div>';
   }).join('');
 };
