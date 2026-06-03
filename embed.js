@@ -26,8 +26,11 @@ function getStartDate(){
 }
 function isDark(){
   var theme=document.documentElement.getAttribute('data-theme');
-  if(theme==='dark')return true;
+  if(theme&&theme!=='light')return true;
   if(theme==='light')return false;
+  var scheme=document.documentElement.getAttribute('data-color-scheme');
+  if(scheme==='dark')return true;
+  if(scheme==='light')return false;
   return window.matchMedia('(prefers-color-scheme:dark)').matches;
 }
 
@@ -146,12 +149,15 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     }
     if(!this._themeObserver&&window.MutationObserver){
       this._themeObserver=new MutationObserver(this._handleThemeChange);
-      this._themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+      this._themeObserver.observe(document.documentElement,{attributes:true,attributeFilter:['data-theme','data-color-scheme']});
     }
   }
   _updateTheme() {
     var theme=document.documentElement.getAttribute('data-theme');
-    if(theme!=='light'&&theme!=='dark')theme=this._colorSchemeMediaQuery&&this._colorSchemeMediaQuery.matches?'dark':'light';
+    var scheme=document.documentElement.getAttribute('data-color-scheme');
+    if(theme)theme=theme==='light'?'light':'dark';
+    else if(scheme==='light'||scheme==='dark')theme=scheme;
+    else theme=this._colorSchemeMediaQuery&&this._colorSchemeMediaQuery.matches?'dark':'light';
     this.setAttribute('data-theme',theme);
   }
   _generateMonthLabels() {
