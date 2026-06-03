@@ -36,18 +36,18 @@ class OpenCodeTokenHeatmap extends HTMLElement {
   }
   connectedCallback() {
     var css = `
-:host{display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px}
-.stats{display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px}
-.stat{flex:1;text-align:center;padding:3px 2px}
+:host{display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px;text-align:left}
+.stats{display:flex;flex-wrap:wrap;gap:0;margin-bottom:12px;max-width:fit-content}
+.stat{flex:0 0 88px;text-align:center;padding:3px 2px;box-sizing:border-box}
 .stat-value{display:block;font-size:13px;font-weight:600;letter-spacing:-0.3px}
 .stat-label{font-size:8px;font-weight:400;color:#8b949e;letter-spacing:0.3px}
 @media(prefers-color-scheme:dark){.stat-value{color:#e6edf3}}
-.heatmap_container{display:flex;flex-direction:column;font-size:10px;line-height:10px;align-items:center}
+.heatmap_container{display:flex;flex-direction:column;font-size:10px;line-height:10px;align-items:flex-start;max-width:fit-content}
 .heatmap_content{display:flex;flex-direction:row;align-items:flex-end;overflow-x:auto;overflow-y:hidden}
 .heatmap_week{display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-end;text-align:right}
 .heatmap_content>.heatmap_week span{margin-right:0.25rem;margin-top:0;min-width:22px;white-space:nowrap;height:12px}
 .heatmap_main{display:flex;flex-direction:column}
-@media(max-width:1200px){.heatmap_content{width:100%}}
+@media(max-width:1200px){.heatmap_content{max-width:100%}}
 .heatmap_month{display:flex;flex-direction:row;justify-content:space-around;align-items:flex-end;text-align:right;margin-bottom:2px}
 .heatmap{display:flex;flex-direction:row;height:84px}
 .heatmap_footer{display:flex;margin-top:0.5rem;align-self:flex-end;min-width:113px;white-space:nowrap;margin-left:auto}
@@ -150,7 +150,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
         d.addEventListener('mouseenter',function(e){self._showTooltip(d,e);});
         d.addEventListener('mouseleave',function(){self._hideTooltip();});
         d.addEventListener('click',function(e){
-          if(self._dailyMap[d.getAttribute('data-date')]){ e.stopPropagation(); self._showDetail(d.getAttribute('data-date'),d); }
+          if(self._dailyMap[d.getAttribute('data-date')]){ e.stopPropagation(); self._showDetail(d.getAttribute('data-date'),d,e); }
         });
       })(day);
       cw.appendChild(day);
@@ -226,6 +226,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
       tip.style.left=l+'px';tip.style.top=t+'px';
     };
     pos(event);
+    var self=this;
     var mm=function(ev){pos(ev);};
     day.addEventListener('mousemove',mm);
     day.addEventListener('mouseleave',function(){day.removeEventListener('mousemove',mm);self._hideTooltip();},{once:true});
@@ -234,7 +235,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     var tc=this.shadowRoot.querySelector('.heatmap_tooltip_container');
     var tip=tc.querySelector('.heatmap_tooltip'); if(tip)tc.removeChild(tip);
   }
-  _showDetail(dateStr, dayEl) {
+  _showDetail(dateStr, dayEl, event) {
     var self=this;
     var entry=this._dailyMap[dateStr]; if(!entry)return;
     var old=this.shadowRoot.querySelector('.detail_panel'); if(old)old.remove();
@@ -290,9 +291,9 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     panel.className='detail_panel';
     panel.innerHTML='<span class="detail_close">&times;</span><h3>'+dateStr+'</h3><div class="detail_summary"><span>'+entry.sessions+' sessions</span><span>'+totalTokens.toLocaleString()+' tokens</span>'+(totalMsgs>0?'<span>'+totalMsgs+' messages</span>':'')+'</div>'+tHtml+mHtml;
     this.shadowRoot.appendChild(panel);
-    var closeHandler=function(e){var p=self.shadowRoot.querySelector('.detail_panel');if(p&&!p.contains(e.target))p.remove();};
+    var closeHandler=function(e){var p=self.shadowRoot.querySelector('.detail_panel');var path=e.composedPath?e.composedPath():[];if(p&&path.indexOf(p)===-1&&!p.contains(e.target)){p.remove();document.removeEventListener('click',closeHandler);}};
     document.addEventListener('click',closeHandler);
-    panel.querySelector('.detail_close').onclick=function(){panel.remove();};
+    panel.querySelector('.detail_close').onclick=function(){panel.remove();document.removeEventListener('click',closeHandler);};
     if(this._donutData){
       var legend=panel.querySelector('.model-legend');
       function hl(idx,sc){
@@ -311,9 +312,11 @@ class OpenCodeTokenHeatmap extends HTMLElement {
       });
     }
     var dr=dayEl.getBoundingClientRect(),pr=panel.getBoundingClientRect();
-    var l=dr.left+dr.width/2+window.scrollX-pr.width/2,t=dr.top+window.scrollY-pr.height-10;
+    var x=event?event.clientX:dr.left+dr.width/2,y=event?event.clientY:dr.top+dr.height/2;
+    var l=x-pr.width/2,t=y-pr.height-12;
     if(l+pr.width>window.innerWidth)l=window.innerWidth-pr.width-4;
-    if(l<4)l=4;if(t<4)t=dr.bottom+window.scrollY+10;
+    if(l<4)l=4;if(t<4)t=y+12;
+    if(t+pr.height>window.innerHeight)t=Math.max(4,window.innerHeight-pr.height-4);
     panel.style.left=l+'px';panel.style.top=t+'px';
   }
   _showError(msg) {
