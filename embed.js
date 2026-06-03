@@ -47,7 +47,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     var css = `
 :host{--ht-main:#334155;--ht-stat:#24292f;--ht-tooltip:#24292f;--ht-tooltip-bg:#fff;--ht-tooltip-border:#ccc;--ht-detail-bg:#f6f8fa;--ht-detail-fg:#24292f;--ht-detail-border:#d0d7de;--ht-detail-shadow:rgba(0,0,0,.12);--ht-lv-0:#ebedf0;--ht-lv-1:#9be9a8;--ht-lv-2:#40c463;--ht-lv-3:#30a14e;--ht-lv-4:#216e39;display:block;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;width:100%;max-width:960px;text-align:left;background:transparent!important;color:var(--ht-main)}
 :host([data-theme="dark"]){--ht-main:#94a3b8;--ht-stat:#e6edf3;--ht-tooltip:#fff;--ht-tooltip-bg:#333;--ht-tooltip-border:#555;--ht-detail-bg:#161b22;--ht-detail-fg:#c9d1d9;--ht-detail-border:#30363d;--ht-detail-shadow:rgba(0,0,0,.4);--ht-lv-0:#161b22;--ht-lv-1:#0e4429;--ht-lv-2:#006d32;--ht-lv-3:#26a641;--ht-lv-4:#39d353}
-.stats{display:flex;flex-wrap:nowrap;gap:0;margin-bottom:12px;background:transparent}
+.stats{display:flex;flex-wrap:nowrap;gap:0;margin-bottom:12px;background:transparent;width:100%}
 .stat{flex:1 0 0;min-width:88px;text-align:center;padding:3px 2px;box-sizing:border-box}
 .stat-value{display:block;font-size:13px;font-weight:600;letter-spacing:-0.3px;color:var(--ht-stat)}
 .stat-label{font-size:8px;font-weight:400;color:#8b949e;letter-spacing:0.3px}
@@ -102,7 +102,6 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     this.shadowRoot.innerHTML = '<style>'+css+'</style>'+this._buildHTML();
     this._generateMonthLabels();
     this._generateGrid();
-    this._syncStatsWidth();
     this._startThemeSync();
     this._fetch();
   }
@@ -116,11 +115,11 @@ class OpenCodeTokenHeatmap extends HTMLElement {
   }
   _buildHTML() {
     var h = '';
-    h += '<div class="stats" id="stats"></div>';
     h += '<div class="heatmap_container">';
     h += '<div class="heatmap_content">';
     h += '<div class="heatmap_week"><span>Mon</span><span>&nbsp;</span><span>Wed</span><span>&nbsp;</span><span>Fri</span><span>&nbsp;</span><span>Sun</span></div>';
     h += '<div class="heatmap_main">';
+    h += '<div class="stats" id="stats"></div>';
     h += '<div class="month heatmap_month"></div>';
     h += '<div id="heatmap_grid" class="heatmap"></div>';
     h += '</div></div>';
@@ -137,11 +136,6 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     h += '</div></div>';
     h += '<div class="heatmap_tooltip_container"></div>';
     return h;
-  }
-  _syncStatsWidth() {
-    var stats=this.shadowRoot.querySelector('#stats');
-    var content=this.shadowRoot.querySelector('.heatmap_content');
-    if(stats&&content)stats.style.width=content.scrollWidth+'px';
   }
   _startThemeSync() {
     this._updateTheme();
@@ -220,7 +214,6 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     this.shadowRoot.querySelector('#stats').innerHTML = cards.map(function(c){
       return '<div class="stat"><span class="stat-value">'+c[0]+'</span><span class="stat-label">'+c[1]+'</span></div>';
     }).join('');
-    this._syncStatsWidth();
   }
   _updateHeatmap(daily, stats) {
     var self = this;
