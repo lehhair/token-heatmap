@@ -367,15 +367,29 @@ function queryModels(dbPath: string, sinceMs: number | null): Record<string, Arr
     const result: Record<string, Array<Record<string, any>>> = {}
     for (const row of rows) {
       if (!result[row.day]) result[row.day] = []
-      result[row.day].push({
-        model: row.model || "unknown",
-        tokens_input: row.tokens_input || 0,
-        tokens_output: row.tokens_output || 0,
-        tokens_cache_read: row.tokens_cache_read || 0,
-        tokens_cache_write: row.tokens_cache_write || 0,
-        tokens_reasoning: row.tokens_reasoning || 0,
-        messages: row.messages || 0,
-      })
+      const model = row.model || "unknown"
+      let existing = result[row.day].find((entry) => entry.model === model)
+      if (!existing) {
+        existing = {
+          model,
+          tokens_input: 0,
+          tokens_output: 0,
+          tokens_cache_read: 0,
+          tokens_cache_write: 0,
+          tokens_reasoning: 0,
+          messages: 0,
+        }
+        result[row.day].push(existing)
+      }
+      existing.tokens_input += row.tokens_input || 0
+      existing.tokens_output += row.tokens_output || 0
+      existing.tokens_cache_read += row.tokens_cache_read || 0
+      existing.tokens_cache_write += row.tokens_cache_write || 0
+      existing.tokens_reasoning += row.tokens_reasoning || 0
+      existing.messages += row.messages || 0
+    }
+    for (const day of Object.keys(result)) {
+      result[day].sort((a, b) => (b.messages || 0) - (a.messages || 0))
     }
     return result
   } catch {

@@ -120,7 +120,17 @@ jobs:
                       if field in model:
                           clean_model[field] = safe_int(model[field], field)
                   clean_models.append(clean_model)
-              clean["models"] = clean_models
+              merged_models = {}
+              for model in clean_models:
+                  name = model["model"]
+                  target = merged_models.setdefault(name, {"model": name})
+                  for field in INT_FIELDS:
+                      target[field] = target.get(field, 0) + model.get(field, 0)
+              clean["models"] = sorted(
+                  merged_models.values(),
+                  key=lambda model: model.get("messages", 0),
+                  reverse=True,
+              )
               clean_daily.append(clean)
 
           def compute_stats(rows):

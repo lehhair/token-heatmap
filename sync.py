@@ -268,15 +268,27 @@ def query_models(db_path: str, since_ms: int | None = None) -> dict[str, list[di
             day, model, t_in, t_out, t_cr, t_cw, t_re, messages = row
             if day not in result:
                 result[day] = []
-            result[day].append({
-                "model": model or "unknown",
-                "tokens_input": t_in or 0,
-                "tokens_output": t_out or 0,
-                "tokens_cache_read": t_cr or 0,
-                "tokens_cache_write": t_cw or 0,
-                "tokens_reasoning": t_re or 0,
-                "messages": messages or 0,
-            })
+            name = model or "unknown"
+            existing = next((entry for entry in result[day] if entry["model"] == name), None)
+            if existing is None:
+                existing = {
+                    "model": name,
+                    "tokens_input": 0,
+                    "tokens_output": 0,
+                    "tokens_cache_read": 0,
+                    "tokens_cache_write": 0,
+                    "tokens_reasoning": 0,
+                    "messages": 0,
+                }
+                result[day].append(existing)
+            existing["tokens_input"] += t_in or 0
+            existing["tokens_output"] += t_out or 0
+            existing["tokens_cache_read"] += t_cr or 0
+            existing["tokens_cache_write"] += t_cw or 0
+            existing["tokens_reasoning"] += t_re or 0
+            existing["messages"] += messages or 0
+        for entries in result.values():
+            entries.sort(key=lambda entry: entry["messages"], reverse=True)
         return result
     except sqlite3.OperationalError:
         return {}

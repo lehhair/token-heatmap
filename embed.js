@@ -272,7 +272,18 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     var old=this.shadowRoot.querySelector('.detail_panel'); if(old)old.remove();
     this._hideTooltip();
     var totalTokens=entry.tokens_input+entry.tokens_output;
-    var models=entry.models||[], totalMsgs=models.reduce(function(s,m){return s+m.messages;},0);
+    var modelMap={};
+    (entry.models||[]).forEach(function(m){
+      var name=m.model||"unknown";
+      if(!modelMap[name])modelMap[name]={model:name,tokens_input:0,tokens_output:0,tokens_cache_read:0,tokens_cache_write:0,tokens_reasoning:0,messages:0};
+      modelMap[name].tokens_input+=m.tokens_input||0;
+      modelMap[name].tokens_output+=m.tokens_output||0;
+      modelMap[name].tokens_cache_read+=m.tokens_cache_read||0;
+      modelMap[name].tokens_cache_write+=m.tokens_cache_write||0;
+      modelMap[name].tokens_reasoning+=m.tokens_reasoning||0;
+      modelMap[name].messages+=m.messages||0;
+    });
+    var models=Object.keys(modelMap).map(function(k){return modelMap[k];}), totalMsgs=models.reduce(function(s,m){return s+m.messages;},0);
     var fmt=function(v){if(v>=1e6)return(v/1e6).toFixed(1)+"M";if(v>=1e3)return(v/1e3).toFixed(1)+"K";return String(v);};
     var tRows=[["Input",entry.tokens_input],["Output",entry.tokens_output],["Cache Read",entry.tokens_cache_read],["Cache Write",entry.tokens_cache_write],["Reasoning",entry.tokens_reasoning]].filter(function(r){return r[1]>0;});
     var tHtml="";
