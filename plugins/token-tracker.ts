@@ -5,15 +5,12 @@ import { Buffer } from "buffer"
 import { gzipSync } from "zlib"
 import { join } from "path"
 import { homedir } from "os"
-import { fileURLToPath } from "url"
 
 const CONFIG_KEY = "token-tracker"
-const WORKER_ARG = "--token-tracker-worker"
 const DEFAULT_SYNC_DAYS = 1
 const STARTUP_DELAY_MS = 5000
 const LOCK_STALE_MS = 10 * 60 * 1000
 const MAX_WORKFLOW_PAYLOAD_CHARS = 60000
-const PLUGIN_FILE = fileURLToPath(import.meta.url)
 
 let syncInFlight: Promise<void> | null = null
 
@@ -149,19 +146,6 @@ function releaseLock(fd: number | null) {
   if (fd === null) return
   try { closeSync(fd) } catch {}
   try { rmSync(lockPath(), { force: true }) } catch {}
-}
-
-function spawnWorker() {
-  try {
-    const child = Bun.spawn(["bun", PLUGIN_FILE, WORKER_ARG], {
-      stdout: "ignore",
-      stderr: "ignore",
-      stdin: "ignore",
-    })
-    child.unref()
-  } catch (e: any) {
-    console.log(`[token-tracker] failed to spawn worker: ${e.message}`)
-  }
 }
 
 async function dispatchWorkflow(config: GithubWorkflowConfig | undefined, upload: Record<string, any>) {
@@ -558,8 +542,8 @@ async function syncData() {
 
 function scheduleSync() {
   if (syncInFlight) return
-  syncInFlight = Promise.resolve()
-    .then(spawnWorker)
+  syncInFlight = syncData()
+    .catch((e: any) => console.log(`[token-tracker] sync failed: ${e.message}`))
     .finally(() => { syncInFlight = null })
 }
 
@@ -570,10 +554,4 @@ export const TokenTracker: Plugin = async ({ client }) => {
   return {
     event: async () => {},
   }
-}
-
-if (process.argv.includes(WORKER_ARG)) {
-  syncData()
-    .catch((e: any) => console.log(`[token-tracker] sync failed: ${e.message}`))
-    .finally(() => process.exit(0))
 }
