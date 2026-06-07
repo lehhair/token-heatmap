@@ -229,10 +229,17 @@
   @media (prefers-color-scheme: dark) {
     .detail_panel { background: #161b22; color: #c9d1d9; border-color: #30363d; box-shadow: 0 4px 12px rgba(0,0,0,0.4); }
   }
-  .detail_panel h3 {
+  .detail_header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .detail_header h3 {
     font-size: 12px;
     font-weight: 600;
-    margin-bottom: 8px;
+    margin: 0;
+    line-height: 1;
   }
   .detail_summary {
     display: flex;
@@ -324,11 +331,15 @@
     flex-shrink: 0; width: 42px; text-align: right;
   }
   .detail_close {
-    float: right;
+    background: none;
+    border: none;
     cursor: pointer;
-    font-size: 16px;
+    font-size: 13px;
+    line-height: 1;
+    color: inherit;
     opacity: 0.5;
-    margin-left: 12px;
+    padding: 0;
+    border-radius: 3px;
   }
   .detail_close:hover { opacity: 1; }
 </style>
@@ -813,8 +824,7 @@
     var panel = document.createElement("div");
     panel.className = "detail_panel";
     panel.innerHTML =
-      '<span class="detail_close" onclick="this.parentElement.remove()">&times;</span>' +
-      '<h3>' + dateStr + '</h3>' +
+      '<div class="detail_header"><h3>' + dateStr + '</h3><button class="detail_close" aria-label="Close">&times;</button></div>' +
       summaryHtml +
       tokensHtml +
       modelsHtml;

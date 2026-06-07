@@ -76,7 +76,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
 .heatmap_day_grow{animation:grow .5s cubic-bezier(.34,1.56,.64,1) both}
 .error{text-align:center;padding:60px 0;color:#cf222e;font-size:14px}
 .detail_panel{position:fixed;padding:12px 14px;background:var(--ht-detail-bg);border-radius:6px;border:1px solid var(--ht-detail-border);box-shadow:0 4px 12px var(--ht-detail-shadow);font-size:12px;color:var(--ht-detail-fg);text-align:left;z-index:1000;width:320px;max-width:calc(100vw - 8px);box-sizing:border-box}
-.detail_panel h3{font-size:12px;font-weight:600;margin-bottom:8px}
+.detail_header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.detail_header h3{font-size:12px;font-weight:600;margin:0;line-height:1}
 .detail_summary{display:flex;gap:10px;margin-bottom:8px;flex-wrap:wrap}
 .detail_summary span{white-space:nowrap}
 .token_list{display:flex;gap:4px;margin-bottom:8px;align-items:flex-end;height:40px}
@@ -99,7 +99,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
 .model-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
 .model-name{font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;min-width:0}
 .model-pct{font-size:11px;font-weight:600;flex-shrink:0;width:42px;text-align:right}
-.detail_close{float:right;cursor:pointer;font-size:16px;opacity:.5;margin-left:12px}
+.detail_close{background:none;border:none;cursor:pointer;font-size:13px;line-height:1;color:inherit;opacity:.5;padding:0;border-radius:3px}
 .detail_close:hover{opacity:1}
 `;
     this.shadowRoot.innerHTML = '<style>'+css+'</style>'+this._buildHTML();
@@ -331,7 +331,7 @@ class OpenCodeTokenHeatmap extends HTMLElement {
     }
     var panel=document.createElement('div');
     panel.className='detail_panel';
-    panel.innerHTML='<span class="detail_close">&times;</span><h3>'+dateStr+'</h3><div class="detail_summary"><span>'+entry.sessions+' sessions</span><span>'+totalTokens.toLocaleString()+' tokens</span>'+(totalMsgs>0?'<span>'+totalMsgs+' messages</span>':'')+'</div>'+tHtml+mHtml;
+    panel.innerHTML='<div class="detail_header"><h3>'+dateStr+'</h3><button class="detail_close">&times;</button></div><div class="detail_summary"><span>'+entry.sessions+' sessions</span><span>'+totalTokens.toLocaleString()+' tokens</span>'+(totalMsgs>0?'<span>'+totalMsgs+' messages</span>':'')+'</div>'+tHtml+mHtml;
     this.shadowRoot.appendChild(panel);
     var closeHandler=function(e){var p=self.shadowRoot.querySelector('.detail_panel');var path=e.composedPath?e.composedPath():[];if(p&&path.indexOf(p)===-1&&!p.contains(e.target)){p.remove();document.removeEventListener('click',closeHandler);}};
     document.addEventListener('click',closeHandler);
