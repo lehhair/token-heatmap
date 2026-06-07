@@ -110,9 +110,7 @@ def query_longest_turns(db_path: str, since_ms: int | None = None) -> dict[str, 
                         json_extract(m.data, '$.time.completed') -
                         json_extract(m.data, '$.time.created')
                     ) as longest_turn_ms
-                FROM session s
-                CROSS JOIN message m INDEXED BY message_session_time_created_id_idx
-                    ON m.session_id = s.id
+                FROM message m
                 WHERE json_extract(m.data, '$.role') = 'assistant'
                   AND json_extract(m.data, '$.time.completed') IS NOT NULL
                 GROUP BY day
@@ -164,14 +162,13 @@ def query_tokens(db_path: str, since_ms: int | None = None) -> list[dict]:
             cursor = conn.execute("""
                 SELECT
                     date(p.time_created / 1000, 'unixepoch') as day,
-                    COUNT(DISTINCT s.id) as sessions,
+                    COUNT(DISTINCT p.session_id) as sessions,
                     SUM(json_extract(p.data, '$.tokens.input')) as tokens_input,
                     SUM(json_extract(p.data, '$.tokens.output')) as tokens_output,
                     SUM(json_extract(p.data, '$.tokens.cache.read')) as tokens_cache_read,
                     SUM(json_extract(p.data, '$.tokens.cache.write')) as tokens_cache_write,
                     SUM(json_extract(p.data, '$.tokens.reasoning')) as tokens_reasoning
-                FROM session s
-                CROSS JOIN part p INDEXED BY part_session_idx ON p.session_id = s.id
+                FROM part p
                 WHERE json_extract(p.data, '$.type') = 'step-finish'
                 GROUP BY day
                 ORDER BY day
@@ -234,12 +231,11 @@ def query_models(db_path: str, since_ms: int | None = None) -> dict[str, list[di
                     SUM(json_extract(p.data, '$.tokens.cache.write')) as tokens_cache_write,
                     SUM(json_extract(p.data, '$.tokens.reasoning')) as tokens_reasoning,
                     COUNT(DISTINCT m.id) as messages
-                FROM session s
-                CROSS JOIN part p INDEXED BY part_session_idx ON p.session_id = s.id
+                FROM part p
                 JOIN message m ON p.message_id = m.id
                 WHERE json_extract(p.data, '$.type') = 'step-finish'
                   AND json_extract(m.data, '$.modelID') IS NOT NULL
-                GROUP BY day, model
+                GROUP BY day, json_extract(m.data, '$.modelID')
                 ORDER BY day, messages DESC
             """)
         else:
@@ -260,7 +256,7 @@ def query_models(db_path: str, since_ms: int | None = None) -> dict[str, list[di
                   AND p.time_created >= ?
                   AND json_extract(p.data, '$.type') = 'step-finish'
                   AND json_extract(m.data, '$.modelID') IS NOT NULL
-                GROUP BY day, model
+                GROUP BY day, json_extract(m.data, '$.modelID')
                 ORDER BY day, messages DESC
             """, (since_ms, since_ms))
         result: dict[str, list[dict]] = {}

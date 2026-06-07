@@ -8,7 +8,8 @@ opencode-heatmap/
 ├── server.py                      # 本地开发服务器（静态文件 + /sync 触发器）
 ├── index.html                     # 纯客户端热力图（fetch JSON → JS 渲染）
 ├── plugins/
-│   └── token-tracker.ts           # OpenCode 插件（复制到 ~/.config/opencode/plugins/ 使用）
+│   ├── token-tracker.ts           # OpenCode 插件入口，启动后台 Worker
+│   └── token-tracker-worker.ts    # 后台同步 Worker，不作为插件入口导出
 ├── stats/
 │   ├── opencode-tokens.json       # 唯一数据源（由 sync.py / 插件生成更新）
 │   └── opencode-tokens.js         # script 标签加载版（兼容 file:// 协议）
@@ -21,7 +22,7 @@ opencode-heatmap/
 
 ### 自动模式（OpenCode 插件，推荐）
 
-安装插件后，每次启动 OpenCode 后延迟触发一次后台同步，无需手动运行脚本。
+安装插件后，OpenCode 加载插件时会启动一个后台 Worker 同步数据，无需手动运行脚本。
 插件首次没有有效本地 stats 数据时会全量读取数据库，之后默认只重算昨天和今天；如果本地 stats 很久没更新，会从最后已有日期补齐。插件不监听 `session.idle`，避免频繁扫描大数据库。
 上传到 GitHub Actions 时，首次是 `full` payload；之后是 `patch` payload。workflow 从已发布的 Pages 地址读取旧 stats 合并，然后部署 Pages artifact，不提交 stats 数据到代码分支。
 GitHub 上传建议通过 `github.token` 或 `github.tokenEnv` 触发 Actions；token 只需要当前仓库的 `Actions: Read and write` 权限。
@@ -172,22 +173,22 @@ python server.py --sync            # 启动前先执行一次 sync
 
 ### 安装
 
-1. 复制插件到全局插件目录：
+方式一：直接从当前仓库用 file URL 加载，适合开发时使用：
 
-```bash
-mkdir -p ~/.config/opencode/plugins
-cp token-tracker.ts ~/.config/opencode/plugins/
-```
-
-2. 在 `~/.config/opencode/opencode.json` 中启用：
-
-```jsonc
+```json
 {
-  "plugin": ["token-tracker"]
+  "plugin": ["file:///absolute/path/to/token-heatmap/plugins/token-tracker.ts"]
 }
 ```
 
-3. 确保 `~/.config/opencode/package.json` 中有 SDK 依赖：
+方式二：复制插件到全局插件目录，OpenCode 会自动加载：
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+cp plugins/token-tracker.ts plugins/token-tracker-worker.ts ~/.config/opencode/plugins/
+```
+
+确保 `~/.config/opencode/package.json` 中有 SDK 依赖：
 
 ```json
 {
@@ -201,19 +202,23 @@ OpenCode 启动时自动 `bun install`。
 
 ### 工作方式
 
-- **启动时**：自动执行一次数据同步
-- **会话空闲时**（`session.idle` 事件）：再次同步，确保数据最新
+- **插件加载时**：启动后台 Worker 执行一次同步，不依赖用户系统里有 `bun` 命令，插件主线程不扫描 SQLite
+- **会话空闲时**：不监听 `session.idle`，避免频繁扫描数据库
 
 ### 配置
 
-在 `~/.config/opencode/opencode.json` 中添加 `token-tracker` 配置块：
+创建 `~/.config/opencode/token-tracker.json`：
 
-```jsonc
+```json
 {
-  "plugin": ["token-tracker"],
-  "token-tracker": {
-    "repo": "/path/to/opencode-heatmap",   // 本地仓库路径
-    "push": false                           // true = 同步后自动 git push
+  "repo": "/path/to/opencode-heatmap",
+  "days": 1,
+  "github": {
+    "owner": "your-github-name",
+    "repo": "token-heatmap",
+    "workflow": "update-token-stats.yml",
+    "ref": "master",
+    "tokenEnv": "TOKEN_HEATMAP_GITHUB_TOKEN"
   }
 }
 ```
@@ -221,9 +226,10 @@ OpenCode 启动时自动 `bun install`。
 | 字段 | 说明 | 默认值 |
 |------|------|--------|
 | `repo` | opencode-heatmap 仓库本地路径 | `~/opencode-heatmap` |
-| `push` | 同步后是否自动 git commit + push | `false` |
+| `days` | 每次增量重算的最近天数，`1` 表示昨天和今天 | `1` |
+| `github` | 触发 GitHub Actions 上传 stats 的配置，可用 `token` 或 `tokenEnv` 提供 token | 未启用 |
 
-设置 `push: true` 后，插件同步完会自动 `git add + commit + push`，配合 GitHub Pages 实现全自动更新。
+配置 `github` 后，插件同步完会触发 GitHub Actions 部署 Pages artifact，不直接提交 stats 数据到代码分支。
 
 ---
 

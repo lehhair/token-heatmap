@@ -50,21 +50,23 @@ GitHub Pages 的 Source 请选择 `GitHub Actions`，不要选 `Deploy from a br
 
 ## 自动同步（OpenCode 插件）
 
-安装插件后，每次启动 OpenCode 后延迟触发一次后台同步。
+安装插件后，OpenCode 加载插件时会启动一个后台 Worker 同步数据。
 
 ### 安装
 
-```bash
-mkdir -p ~/.config/opencode/plugins
-cp plugins/token-tracker.ts ~/.config/opencode/plugins/
-```
-
-在 `~/.config/opencode/opencode.json` 中启用：
+方式一：直接从当前仓库用 file URL 加载，适合开发时使用：
 
 ```json
 {
-  "plugin": ["token-tracker"]
+  "plugin": ["file:///absolute/path/to/token-heatmap/plugins/token-tracker.ts"]
 }
+```
+
+方式二：复制到 OpenCode 全局插件目录，OpenCode 会自动加载：
+
+```bash
+mkdir -p ~/.config/opencode/plugins
+cp plugins/token-tracker.ts plugins/token-tracker-worker.ts ~/.config/opencode/plugins/
 ```
 
 确保 `~/.config/opencode/package.json` 有依赖：
@@ -106,7 +108,7 @@ OpenCode 启动时会自动 `bun install`。
 
 > 注意：配置写在单独的 `token-tracker.json` 中，因为 `opencode.json` 有严格 schema 校验，不允许自定义顶层 key。
 
-插件只在 OpenCode 启动后延迟触发一次后台同步，不监听 `session.idle`。首次没有有效本地 stats 数据时全量初始化，之后默认只重算昨天和今天；如果本地 stats 很久没更新，会从最后已有日期补齐。配置 `github` 后，插件会触发 GitHub Actions 写入 `stats/`，本地 token 不直接 push 仓库内容。
+插件加载时只启动一次后台 Worker 做同步，不依赖用户系统里有 `bun` 命令，不在插件主线程扫描 SQLite，也不监听 `session.idle`。首次没有有效本地 stats 数据时全量初始化，之后默认只重算昨天和今天；如果本地 stats 很久没更新，会从最后已有日期补齐。配置 `github` 后，插件会触发 GitHub Actions 写入 `stats/`，本地 token 不直接 push 仓库内容。
 
 上传到 GitHub Actions 时分两种模式：首次初始化发送 `full` payload；之后只发送 `patch` payload，也就是最近重算的日期数据。workflow 会从已发布的 Pages 地址读取旧 `stats/opencode-tokens.json` 并合并 patch，然后重新部署 Pages artifact，不产生 `data: update token stats` 这类数据提交。如果已发布页面还没有 stats，patch 会失败并提示先做一次 full 初始化。
 
@@ -172,7 +174,7 @@ Windows PowerShell 设置环境变量：
 setx TOKEN_HEATMAP_GITHUB_TOKEN "github_pat_xxx"
 ```
 
-设置完后重启 OpenCode。插件会在启动后后台生成 stats，并触发 `.github/workflows/update-token-stats.yml`。workflow 只会把 `index.html` 和 `stats/opencode-tokens.json/js` 打包成 Pages artifact 并部署，不会提交 stats 数据到仓库。
+设置完后重启 OpenCode。插件会在加载后通过后台 Worker 生成 stats，并触发 `.github/workflows/update-token-stats.yml`。workflow 只会把 `index.html` 和 `stats/opencode-tokens.json/js` 打包成 Pages artifact 并部署，不会提交 stats 数据到仓库。
 
 ## 命令参考
 
@@ -220,7 +222,8 @@ opencode-heatmap/
 ├── sync.py                     # 数据同步脚本
 ├── server.py                   # 开发服务器
 ├── plugins/
-│   └── token-tracker.ts        # OpenCode 自动同步插件
+│   ├── token-tracker.ts        # OpenCode 插件入口，启动后台 Worker
+│   └── token-tracker-worker.ts # 后台同步 Worker，不作为插件入口导出
 ├── stats/
 │   ├── opencode-tokens.json    # 数据文件 (fetch 加载)
 │   └── opencode-tokens.js      # 数据文件 (script 标签加载, 兼容 file://)

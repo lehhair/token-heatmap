@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "updated_at": "2026-06-03T14:39:50.847641+00:00",
+  "updated_at": "2026-06-07T12:49:00.310452+00:00",
   "daily": [
     {
       "date": "2026-02-15",
@@ -4113,41 +4113,183 @@
     {
       "date": "2026-06-03",
       "sessions": 2,
-      "tokens_input": 2068165,
-      "tokens_output": 155218,
-      "tokens_cache_read": 48958720,
+      "tokens_input": 2718143,
+      "tokens_output": 177954,
+      "tokens_cache_read": 56426880,
       "tokens_cache_write": 0,
-      "tokens_reasoning": 188752,
+      "tokens_reasoning": 241390,
       "longest_turn_ms": 224187,
       "models": [
         {
           "model": "gpt-5.5",
-          "tokens_input": 1138126,
-          "tokens_output": 80511,
-          "tokens_cache_read": 30126080,
+          "tokens_input": 1784631,
+          "tokens_output": 101722,
+          "tokens_cache_read": 37394944,
           "tokens_cache_write": 0,
-          "tokens_reasoning": 65251,
-          "messages": 270
+          "tokens_reasoning": 116796,
+          "messages": 347
         },
         {
           "model": "deepseek-v4-flash-free",
-          "tokens_input": 930039,
-          "tokens_output": 74707,
-          "tokens_cache_read": 18832640,
+          "tokens_input": 933512,
+          "tokens_output": 76232,
+          "tokens_cache_read": 19031936,
           "tokens_cache_write": 0,
-          "tokens_reasoning": 123501,
-          "messages": 236
+          "tokens_reasoning": 124594,
+          "messages": 243
         }
       ],
-      "tokens": 2223383
+      "tokens": 2896097
+    },
+    {
+      "date": "2026-06-04",
+      "sessions": 7,
+      "tokens_input": 15320084,
+      "tokens_output": 90913,
+      "tokens_cache_read": 17948672,
+      "tokens_cache_write": 0,
+      "tokens_reasoning": 89322,
+      "longest_turn_ms": 338478,
+      "models": [
+        {
+          "model": "gpt-5.5",
+          "tokens_input": 14504603,
+          "tokens_output": 59508,
+          "tokens_cache_read": 8493056,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 49650,
+          "messages": 236
+        },
+        {
+          "model": "deepseek-v4-flash-free",
+          "tokens_input": 815481,
+          "tokens_output": 31405,
+          "tokens_cache_read": 9455616,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 39672,
+          "messages": 133
+        }
+      ],
+      "tokens": 15410997
+    },
+    {
+      "date": "2026-06-05",
+      "sessions": 8,
+      "tokens_input": 5320196,
+      "tokens_output": 248770,
+      "tokens_cache_read": 68171392,
+      "tokens_cache_write": 0,
+      "tokens_reasoning": 136640,
+      "longest_turn_ms": 179196,
+      "models": [
+        {
+          "model": "gpt-5.5",
+          "tokens_input": 3664135,
+          "tokens_output": 110082,
+          "tokens_cache_read": 52911104,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 98442,
+          "messages": 357
+        },
+        {
+          "model": "deepseek-v4-flash-free",
+          "tokens_input": 1656061,
+          "tokens_output": 138688,
+          "tokens_cache_read": 15260288,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 38198,
+          "messages": 212
+        }
+      ],
+      "tokens": 5568966
+    },
+    {
+      "date": "2026-06-06",
+      "sessions": 5,
+      "tokens_input": 33735915,
+      "tokens_output": 675632,
+      "tokens_cache_read": 223337088,
+      "tokens_cache_write": 0,
+      "tokens_reasoning": 209799,
+      "longest_turn_ms": 1539569,
+      "models": [
+        {
+          "model": "gpt-5.5",
+          "tokens_input": 12712526,
+          "tokens_output": 534600,
+          "tokens_cache_read": 223238656,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 209572,
+          "messages": 1380
+        },
+        {
+          "model": "claude-opus-4-8",
+          "tokens_input": 20995316,
+          "tokens_output": 130508,
+          "tokens_cache_read": 0,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 0,
+          "messages": 186
+        },
+        {
+          "model": "deepseek-v4-flash-free",
+          "tokens_input": 28073,
+          "tokens_output": 10524,
+          "tokens_cache_read": 98432,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 227,
+          "messages": 6
+        }
+      ],
+      "tokens": 34411547
+    },
+    {
+      "date": "2026-06-07",
+      "sessions": 10,
+      "tokens_input": 3777177,
+      "tokens_output": 163430,
+      "tokens_cache_read": 50876544,
+      "tokens_cache_write": 0,
+      "tokens_reasoning": 211057,
+      "longest_turn_ms": 267119,
+      "models": [
+        {
+          "model": "gpt-5.5",
+          "tokens_input": 3320568,
+          "tokens_output": 110296,
+          "tokens_cache_read": 43130368,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 108161,
+          "messages": 321
+        },
+        {
+          "model": "deepseek-v4-flash-free",
+          "tokens_input": 381674,
+          "tokens_output": 51006,
+          "tokens_cache_read": 6774400,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 96350,
+          "messages": 149
+        },
+        {
+          "model": "mimo-v2.5-free",
+          "tokens_input": 74935,
+          "tokens_output": 2128,
+          "tokens_cache_read": 971776,
+          "tokens_cache_write": 0,
+          "tokens_reasoning": 6546,
+          "messages": 15
+        }
+      ],
+      "tokens": 3940607
     }
   ],
   "stats": {
-    "lifetime_tokens": 2885233379,
+    "lifetime_tokens": 2945238210,
     "peak_daily_tokens": 1227328882,
     "longest_turn_sec": 12594,
-    "current_streak_days": 5,
-    "longest_streak_days": 101,
-    "total_sessions": 1441
+    "current_streak_days": 9,
+    "longest_streak_days": 105,
+    "total_sessions": 1471
   }
 }
